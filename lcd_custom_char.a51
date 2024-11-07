@@ -183,11 +183,11 @@ DISPLAY_GREETING:
 RET
 
 KEY:
-AGAIN: mov c, p0.0
-	   jc AGAIN
-	   acall WAIT
-	   mov c, p0.0
-	   SETB 00H
+AGAIN: MOV C, P0.0
+	JC AGAIN
+	ACALL WAIT
+	MOV C, P0.0
+	SETB 00H
 RET
 	   
 	   
