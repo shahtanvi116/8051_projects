@@ -1,5 +1,4 @@
-; --- Main Program ---
-MAIN:
+
         ACALL LCD_INIT       ; Initialize LCD
         ACALL CREATE_CHARACTERS  ; Load custom characters into CGRAM
 		MOV A, #81H          ; Set DDRAM address to display location
