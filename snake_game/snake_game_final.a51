@@ -51,7 +51,7 @@ dboun: ;delay subroutine for keypad
 		djnz r6,dloop2
 	ret
 	
-delay:;2ms delay assuming clk freq 12MHz
+delay:;25ms delay assuming clk freq 12MHz
 	
 		mov r3,#50
 		here2:mov r4,#255
@@ -59,24 +59,9 @@ delay:;2ms delay assuming clk freq 12MHz
 		djnz r3,here2
 	ret ;for delay
 	
-delay500ms: ;500msec delay generation assuming 12Mhz Clk
-	
-		mov r0,#10d ;50ms delay is to be repeated 10 times
-		mov tmod,#01h ;set timer-0 mode-1
-		
-		repeat_500ms: mov th0,#3ch ;load the count into timers
-		mov tl0,#0b0h
-		setb tr0
-		wait_500ms: jnb tf0,wait_500ms ;wait till timer overflows
-		clr tr0
-		clr tf0
-		djnz r0,repeat_500ms ;repeat loop 40 times
-		
-	ret ;for delay500ms
-	
 delay1s: ;1sec delay generation assuming 12Mhz Clk
-clr psw.3
-clr psw.4
+		clr psw.3
+		clr psw.4
 		mov r3,#04
 		here0:mov r4,#250
 		here10:mov r2,#250
@@ -88,20 +73,6 @@ clr psw.4
 		djnz r3,here0
 
 	ret 
-
-delay2s: ;2sec delay generation assuming 12Mhz Clk
-	
-		mov r0,#40d ;50ms delay is to be repeated 40 times
-		mov tmod,#01h ;set timer-0 mode-1
-		
-		repeat_2s: mov th0,#3ch ;load the count into timers
-		mov tl0,#0b0h
-		setb tr0
-		wait_2s: jnb tf0,wait_2s ;wait till timer overflows
-		clr tr0
-		clr tf0
-		djnz r0,repeat_2s ;repeat loop 40 times
-	ret
 
 display_string: ;subroutine to display a string form lookup table
 	
