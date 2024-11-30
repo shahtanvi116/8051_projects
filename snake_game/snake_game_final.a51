@@ -1,4 +1,3 @@
-
 org 0000h
 sjmp main	
 org 002bh
@@ -10,10 +9,8 @@ org 002bh
 	mov sp,#20h ; initialze stack pointer to place other than register bank addresses
 	
 	lcall lcd_initialization
-	
-	lcall create_custom_char1 ;load custom character into CGRAM of LCD
-	
-	lcall display_title ;display title of project
+	//lcall create_custom_char1 ;load custom character into CGRAM of LCD
+	//lcall display_title ;display title of project
 	lcall snake_game
 
 	here: sjmp here
@@ -67,22 +64,7 @@ delay:;2ms delay assuming clk freq 12MHz
 		here2:mov r4,#255
 		here1:djnz r4,here1
 		djnz r3,here2
-	ret ;for delay
-	
-delay500ms: ;500msec delay generation assuming 12Mhz Clk
-	
-		mov r0,#10d ;50ms delay is to be repeated 10 times
-		mov tmod,#01h ;set timer-0 mode-1
-		
-		repeat_500ms: mov th0,#3ch ;load the count into timers
-		mov tl0,#0b0h
-		setb tr0
-		wait_500ms: jnb tf0,wait_500ms ;wait till timer overflows
-		clr tr0
-		clr tf0
-		djnz r0,repeat_500ms ;repeat loop 40 times
-		
-	ret ;for delay500ms
+	ret ;for delay	
 	
 delay1s: ;1sec delay generation assuming 12Mhz Clk
 clr psw.3
@@ -96,22 +78,7 @@ clr psw.4
 		djnz r2,here20
 		djnz r4,here10
 		djnz r3,here0
-
-	ret 
-
-delay2s: ;2sec delay generation assuming 12Mhz Clk
-	
-		mov r0,#40d ;50ms delay is to be repeated 40 times
-		mov tmod,#01h ;set timer-0 mode-1
-		
-		repeat_2s: mov th0,#3ch ;load the count into timers
-		mov tl0,#0b0h
-		setb tr0
-		wait_2s: jnb tf0,wait_2s ;wait till timer overflows
-		clr tr0
-		clr tf0
-		djnz r0,repeat_2s ;repeat loop 40 times
-	ret
+ret 
 
 display_string: ;subroutine to display a string form lookup table
 	
@@ -127,7 +94,7 @@ display_string: ;subroutine to display a string form lookup table
 		movc a, @a+dptr ;access then new character
 		
 		cjne a,#00h,back2nxt  ; If not end of string (null terminator), loop
-	ret
+ret
 
 lcd_initialization:
 	
@@ -152,12 +119,11 @@ lcd_initialization:
 		mov a,#01h ;clr display
 		lcall cmdwrt
 					
-			mov a,#80h
-			lcall cmdwrt	
-	ret
+		mov a,#80h
+		lcall cmdwrt	
+ret
 	
-display_title:
-	
+display_title:	
 		mov a,#0fh ; dispaly on cursor blinking
 		lcall cmdwrt
 
@@ -181,7 +147,7 @@ display_title:
 		mov a,#0ch ;set lcd to display on cursor off mode
 		lcall cmdwrt
 
-		lcall delay2s ; give user time to read the contents of screen
+		lcall delay1s ; give user time to read the contents of screen
 		
 		mov a,#0fh ; dispaly on cursor blinking
 		lcall cmdwrt
@@ -195,9 +161,9 @@ display_title:
 		mov a,#0ch ;set lcd to display on cursor off mode
 		lcall cmdwrt
 		
-		lcall delay2s
+		lcall delay1s
 	
-	ret ;for display_title 
+ret ;for display_title 
 	
 create_custom_char1:
 		
@@ -217,41 +183,45 @@ create_custom_char1:
 		
 ret ;for create_custom_char1
 	
+
+
 org 0003h ;keyboard logic is written here
-		
-		ljmp main_isr ;isr for external interrupt-0 starts here
-		lcall display_title
-		return:	
+	ljmp main_isr ;isr for external interrupt-0 starts here
+	return:	
 		reti
-org 0400h
-		
+org 0400h		
 		main_isr:
-		
 			lcall dboun
 			mov a,p0
 			cjne a,#0ffh,identify
 			ljmp return
-			identify:lcall dboun ;now the program serves to check 
+			
+			identify:
+			lcall dboun ;now the program serves to check 
 			mov a,p0 ;which key is pressed
 			
 			setb psw.3 ; set register bank-1 for keyboard operations
 			clr psw.4
 			mov r0,#00h
-			mov r1,#08h
+			mov r1,#04h
 			
-			again: rrc  a ;key indentification logic starts here
+			again: 
+			rrc  a ;key indentification logic starts here
 			jc next_key
 			sjmp found
 			
 			next_key: inc r0
 			djnz r1,again
-			mov r1,#0ffh
+			mov r0,#00h
 			
 			found: mov a,r0; reg where key code is stored
-			mov b,a; *****Reg-B stores the value of direction control*****
-			clr psw.3; reset the register bank for lcd display puropses
-			clr psw.4
+			//mov b,a; *****Reg-B stores the value of direction control*****
+			clr psw.3; reset the register bank to 2 for snake_game 
+			setb psw.4
+			mov r3,a
 			ljmp return
+
+
 
 org 0500h ;Look-Up to store Strings
 		
@@ -292,14 +262,17 @@ snake_game:
 		;r6,r7->these are kept free for any copying use in any game related operation
 			mov r0,#30h ;store the value of ram locations that will be used to store body coordinates
 			;set the intial coordinates of snake: head->(y,x)=>0,2, body->0,1, tail->0,0
-			mov r1,#02h
-			mov @r0,#01h
-			mov r2,#00h
+			mov r1,#12h
+			mov @r0,#11h
+			mov r2,#10h
 			
 			mov r3,#00h;initially start moving towards right
 			mov r4,#01h;length at start contains only one middle section
 			mov r5,#00d; set the initial score to 00
-	
+			
+			mov b,r2
+			mov a,r1
+			mov r6,a
 			test:
 			lcall update_lcd
 			lcall calc_pos
@@ -340,11 +313,10 @@ calc_pos: ;subroutine to calculate position of head
 				
 				mov a,r1
 				orl a,#10h; set the upper nibble to 1 i.e. y=1
+				mov r1,a
 			
 			ext:
 			ret ;for calc_pos subroutine
-				
-ret
 
 update_pos: ;this subroutine updates the coordinates of snakes body exluding head
 				setb psw.4 ;reg-bank-2
@@ -419,10 +391,9 @@ update_lcd: ;this function converts the coordinates to lcd values and displays t
 				;lcd clr and cursor off yet to be given
 				setb psw.4 ;reg-bank-2
 				clr psw.3
-				mov a,b
-				
+				mov a,b				
 				anl a,#0f0h
-				swap a
+				//swap a
 				
 				jnz y_1
 				
@@ -442,7 +413,7 @@ update_lcd: ;this function converts the coordinates to lcd values and displays t
 				
 				mov a,b
 				mov dptr,#y1
-				mov a,#0fh
+				anl a,#0fh
 				movc a,@a+dptr; set the curosr at tails old coordinates
 				lcall cmdwrt
 				
@@ -462,7 +433,7 @@ update_lcd: ;this function converts the coordinates to lcd values and displays t
 				
 				mov a,r2 ;store the new coordinates of tail in a
 				anl a,#0f0h
-				swap a
+				//swap a
 				
 				jnz tail_updt_y1
 				
@@ -491,8 +462,7 @@ update_lcd: ;this function converts the coordinates to lcd values and displays t
 				lcall datawrt
 				
 				;update body
-				body_updt:
-				
+		body_updt:
 				mov a,r4;copy body length in r7 for looping purposes
 				mov r7,a
 				
@@ -501,11 +471,11 @@ update_lcd: ;this function converts the coordinates to lcd values and displays t
 				movc a,@a+dptr
 				mov r6,a
 				
-				bd_updt_loop:
+		bd_updt_loop:
 				
 				mov a,@r0
 				anl a,#0f0h
-				swap a
+				//swap a
 				
 				jnz bd_updt_y1
 				
@@ -516,10 +486,10 @@ update_lcd: ;this function converts the coordinates to lcd values and displays t
 				
 				mov a,r6
 				lcall datawrt ;update lcd with body char
-				cjne r7,#00,bd_loop
+				//cjne r7,#00,bd_loop
 				sjmp head_updt_y0
 				
-				bd_updt_y1:
+		bd_updt_y1:
 				
 				mov dptr,#y1
 				mov a,@r0 ;fetch the coordinates form value pointed by r0
@@ -530,11 +500,11 @@ update_lcd: ;this function converts the coordinates to lcd values and displays t
 				mov a,r6
 				lcall datawrt ;update lcd with body char
 				
-				bd_loop:inc r0
+				/*bd_loop:inc r0
 				
 				djnz r7,bd_updt_loop
 				
-				mov r0,#30h; load r0 original value back to r0
+				mov r0,#30h; load r0 original value back to r0*/
 				
 				;update head
 		head_updt_y0:
@@ -559,8 +529,7 @@ update_lcd: ;this function converts the coordinates to lcd values and displays t
 				
 				sjmp ext_2
 				
-				head_updt_y1:
-				
+		head_updt_y1:		
 				mov dptr,#y1
 				
 				mov a,r1 ;set cursor to new head location
