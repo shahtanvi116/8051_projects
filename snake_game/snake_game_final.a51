@@ -1,3 +1,6 @@
+//rs=p2.7
+//rw=p2.6
+//E=p2.5
 org 0000h
 sjmp main	
 org 002bh
