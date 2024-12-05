@@ -5,7 +5,9 @@ org 002bh
 	mov ie,#81h ; active external interrupt-0 and external interrupt-1 pin
 	mov ip,#01h ; give external interrupt-0 higghest priority
 	setb tcon.0 ;set the external interrupt pin as edge triggred
-
+	mov tmod, #02h
+	mov th0,#00h
+	setb tr0
 	mov sp,#20h ; initialze stack pointer to place other than register bank addresses
 	
 	lcall lcd_initialization
@@ -21,53 +23,55 @@ org 100h ;space to write LCD Subroutines + Animation Subroutines
 cmdwrt:	
 		acall check_busy_flag; wait till lcd is ready to accept new instruction
 		mov p1,a
-		clr p3.3 ; select rs to write command
-		clr p3.4 ; select r/w to write mode
-		setb p3.5 ; set enable signal
+		clr p2.7 ; select rs to write command
+		clr p2.6 ; select r/w to write mode
+		setb p2.5 ; set enable signal
 		acall delay
-		clr p3.5 ; give a high to low pulse		
+		clr p2.5 ; give a high to low pulse		
 	ret ;for cmdwrt
 	
 datawrt:
 	
 		acall check_busy_flag; wait till lcd is ready to accept new instruction
 		mov p1,a
-		setb p3.3 ; select rs to write data
-		clr p3.4 ;select r/w to write mode
-		setb p3.5 ; set enable signal
+		setb p2.7 ; select rs to write data
+		clr p2.6 ;select r/w to write mode
+		setb p2.5 ; set enable signal
 		acall delay
-		clr p3.5 ; give a high to low pulse
+		clr p2.5 ; give a high to low pulse
 	ret ;for datawrt
 	
 check_busy_flag: ;subroutine that checks the status of busy flag based on above mentioned conditions
 	
-		clr p3.3 ; clr rs
-		setb p3.4 ;set r/w to 1 for reading from LCD
-		back:clr p3.5 ;clr enable for low to high pulse to be given
+		clr p2.7 ; clr rs
+		setb p2.6 ;set r/w to 1 for reading from LCD
+		back:clr p2.5 ;clr enable for low to high pulse to be given
 		acall delay ; delay to generate a low pulse
-		setb p3.5 ; set enable so that busy flag is now made availabe for reading at D7 of lcd
+		setb p2.5 ; set enable so that busy flag is now made availabe for reading at D7 of lcd
 		jb p1.7,back ; check
 	ret ;for check_busy_flag
 	
 dboun: ;delay subroutine for keypad
+clr psw.4
 		mov r6,#10d 
 		dloop2:mov r7,#250d
 		dloop1:nop
 		nop
 		djnz r7,dloop1
 		djnz r6,dloop2
-	ret
+setb psw.4	
+ret
 	
 delay:;2ms delay assuming clk freq 12MHz
-	
+clr psw.4	
 		mov r3,#50
 		here2:mov r4,#255
 		here1:djnz r4,here1
 		djnz r3,here2
-	ret ;for delay	
+setb psw.4	
+ret ;for delay	
 	
 delay1s: ;1sec delay generation assuming 12Mhz Clk
-clr psw.3
 clr psw.4
 		mov r3,#04
 		here0:mov r4,#250
@@ -78,6 +82,7 @@ clr psw.4
 		djnz r2,here20
 		djnz r4,here10
 		djnz r3,here0
+setb psw.4
 ret 
 
 display_string: ;subroutine to display a string form lookup table
@@ -113,7 +118,7 @@ lcd_initialization:
 		lcall cmdwrt
 		lcall delay
 		
-		mov a,#0fh ; dispaly on cursor blinking
+		mov a,#0ch ; dispaly on cursor off
 		lcall cmdwrt
 
 		mov a,#01h ;clr display
@@ -186,41 +191,66 @@ ret ;for create_custom_char1
 
 
 org 0003h ;keyboard logic is written here
+	//mov ie,#00h
 	ljmp main_isr ;isr for external interrupt-0 starts here
 	return:	
+	//mov ie,#01h
 		reti
 org 0400h		
 		main_isr:
-			lcall dboun
-			mov a,p0
-			cjne a,#0ffh,identify
-			ljmp return
+		lcall dboun
+		mov a,p0
+		anl a,#07h
+		cjne a,#07h,identify
+		ljmp return
+		identify:lcall dboun ;now the program serves to check 
+		mov a,p0 ;which key is pressed
+		
+		setb psw.3 ; set register bank-1 for keyboard operations
+		clr psw.4
+		mov r0,#00h
+		mov r1,#04h
+		
+		again: rrc  a ;key identification logic starts here
+		jc next_key
+		sjmp found
+		
+		next_key: inc r0
+		djnz r1,again
+		
+		found:
+		    cjne r0,#00h,b1
+			mov a,#80h
+			lcall cmdwrt
+			mov a,#'k'
+			lcall datawrt
+			b1:cjne r0,#01h,b2
+			mov a,#80h
+			lcall cmdwrt
+			mov a,#'l'
+			lcall datawrt
+			b2:cjne r0,#03h,b3
+			mov a,#80h
+			lcall cmdwrt
+			mov a,#'m'
+			lcall datawrt
+			b3:cjne r0,#02h,bye
+			mov a,#80h
+			lcall cmdwrt
+			mov a,#'n'
+			lcall datawrt
+			bye:
+			mov a,r0
 			
-			identify:
-			lcall dboun ;now the program serves to check 
-			mov a,p0 ;which key is pressed
-			
-			setb psw.3 ; set register bank-1 for keyboard operations
-			clr psw.4
-			mov r0,#00h
-			mov r1,#04h
-			
-			again: 
-			rrc  a ;key indentification logic starts here
-			jc next_key
-			sjmp found
-			
-			next_key: inc r0
-			djnz r1,again
-			mov r0,#00h
-			
-			found: mov a,r0; reg where key code is stored
-			//mov b,a; *****Reg-B stores the value of direction control*****
-			clr psw.3; reset the register bank to 2 for snake_game 
+			clr psw.3; reset the register bank for lcd display purposes
 			setb psw.4
 			mov r3,a
 			ljmp return
-
+			
+			
+org 000bh
+			clr tf0
+			reti
 
 
 org 0500h ;Look-Up to store Strings
@@ -244,13 +274,15 @@ org 0650h ;Look-Up Table To Map Out LCD Cursor Positions Based on Coordinate Val
 				head:db "x"
 				body:db "o"
 				tail:db "*"
+				food:db "@"
 
 org 0700h ; Logic for Snake Game Starts Here
 snake_game:
 			mov a,#01h
 			lcall cmdwrt
-			clr psw.3 ;set Reg-Bank-2 For Game Operations
 			setb psw.4
+			clr psw.3 ;set Reg-Bank-2 For Game Operations
+			
 		
 		;lets clear what each register of this register bank represents:
 		;r0->stores the value of ram location 30h from where the coordinates of snakes body position can be accessed
@@ -258,21 +290,28 @@ snake_game:
 		;r2->stores the coordinates of tail of snake
 		;r3->stores the direction in which the snake is supposed to move currently acts as direction register
 		;r4->stores the length of the midlle body section of snake
-		;r5->stores the score of snake
+		;not yet decided->stores the score of snake
 		;r6,r7->these are kept free for any copying use in any game related operation
+		;r5->food position
 			mov r0,#30h ;store the value of ram locations that will be used to store body coordinates
 			;set the intial coordinates of snake: head->(y,x)=>0,2, body->0,1, tail->0,0
-			mov r1,#12h
-			mov @r0,#11h
-			mov r2,#10h
+			mov r1,#1ch
+			mov @r0,#1dh
+			mov r2,#1eh
 			
-			mov r3,#00h;initially start moving towards right
+			mov r3,#01h;initially start moving towards left
 			mov r4,#01h;length at start contains only one middle section
-			mov r5,#00d; set the initial score to 00
+			mov r5,#19h; set the initial food position 
 			
 			mov b,r2
 			mov a,r1
 			mov r6,a
+			
+			mov a,#0c9h
+			lcall cmdwrt
+			mov a,#'@'
+			lcall datawrt
+			
 			test:
 			lcall update_lcd
 			lcall calc_pos
@@ -326,12 +365,13 @@ update_pos: ;this subroutine updates the coordinates of snakes body exluding hea
 				
 				mov a,r4 ;store length of middle body in reg-a
 				
-				//cjne a,#01h,len_nt_1 ;check for default movment till the length is not increased to more than 1				
+				cjne a,#01h,len_nt_1 ;check for default movment till the length is not increased to more than 1				
 				mov a,@r0 ;mov the coordinates of middle position to tail 
 				mov r2,a
 				
 				mov a,r6; store the old snake heads position to middle segment
 				mov @r0,a
+				
 				
 				sjmp ext_1
 				
@@ -391,9 +431,9 @@ update_lcd: ;this function converts the coordinates to lcd values and displays t
 				;lcd clr and cursor off yet to be given
 				setb psw.4 ;reg-bank-2
 				clr psw.3
+				
 				mov a,b				
 				anl a,#0f0h
-				//swap a
 				
 				jnz y_1
 				
@@ -433,7 +473,6 @@ update_lcd: ;this function converts the coordinates to lcd values and displays t
 				
 				mov a,r2 ;store the new coordinates of tail in a
 				anl a,#0f0h
-				//swap a
 				
 				jnz tail_updt_y1
 				
@@ -475,7 +514,6 @@ update_lcd: ;this function converts the coordinates to lcd values and displays t
 				
 				mov a,@r0
 				anl a,#0f0h
-				//swap a
 				
 				jnz bd_updt_y1
 				
@@ -486,7 +524,7 @@ update_lcd: ;this function converts the coordinates to lcd values and displays t
 				
 				mov a,r6
 				lcall datawrt ;update lcd with body char
-				//cjne r7,#00,bd_loop
+				cjne r7,#00,bd_loop
 				sjmp head_updt_y0
 				
 		bd_updt_y1:
@@ -500,7 +538,7 @@ update_lcd: ;this function converts the coordinates to lcd values and displays t
 				mov a,r6
 				lcall datawrt ;update lcd with body char
 				
-				/*bd_loop:inc r0
+				bd_loop:inc r0
 				
 				djnz r7,bd_updt_loop
 				
@@ -515,7 +553,6 @@ update_lcd: ;this function converts the coordinates to lcd values and displays t
 				
 				mov a,r1 ;load the coordinates of head in reg-a
 				anl a,#0f0h
-				//swap a
 				
 				jnz head_updt_y1 
 				
@@ -541,7 +578,72 @@ update_lcd: ;this function converts the coordinates to lcd values and displays t
 				lcall datawrt
 				
 			ext_2:	
-			ret ;for update_lcd
+				mov a,r1 ; store new head position in r1
+				cjne a,15h,ext_ ; compare head position 
+				lcall food_pos ; update food_pos if it merge with head 
+				ext_:ret ;for update_lcd
+
+
+food_pos:
+				clr psw.3 ;reg bank 2 selected
+				setb psw.4
+				
+				mov 1fh,r5 ; r7 of reg bank 3
+				mov r5,tl0 ;timer instantaneous value in r5
+				mov a,r5
+				anl a,#1fh ; convert upper nibble of value as eiher 1 or 0
+				mov r5,a ; r5 have absolutely random value
+				cjne a,11h,ch_b ; compare new position with head location
+				inc a
+				ch_b:cjne a,30h,ch_t;compare new position with body location
+				inc a
+				ch_t:cjne a,12h,skip;compare new position with tail location
+				inc a
+				skip:inc r4 ; inc length
+				mov r5,a ; final food position
+			
+				mov a,1fh ;old food position in 1fh, replace with space
+				anl a,#0f0h
+				jnz y1_clr_food
+				mov dptr,#y0
+				mov a,1fh
+				anl a,#0fh
+				movc a,@a+dptr
+				lcall cmdwrt
+				sjmp goto
+				y1_clr_food:
+				mov dptr,#y1
+				mov a,1fh
+				anl a,#0fh
+				movc a,@a+dptr
+				lcall cmdwrt
+				goto: mov a,#' '
+				lcall datawrt
+				
+				clr a ;store the head character in r6
+				mov dptr,#food
+				movc a,@a+dptr
+				mov r6,a
+				
+				mov a,r5			; mov food to location stored in r5
+				anl a,#0f0h	
+				jnz food_y_1		
+				mov dptr,#y0
+				mov a,r5
+				anl a,#0fh
+				movc a,@a+dptr
+				lcall cmdwrt
+				sjmp go
+				food_y_1:
+				mov a,r5
+				mov dptr,#y1
+				mov a,r5
+				anl a,#0fh
+				movc a,@a+dptr
+				lcall cmdwrt
+				go: mov a,r6
+				lcall datawrt
+			ret ; ret from food_pos
 			
 end
 
