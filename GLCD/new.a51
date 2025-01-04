@@ -427,7 +427,6 @@ org 600h; snake game
 			lcall calc_pos
 			lcall update_pos
 			lcall update_lcd
-			mov ie,#81h
 			lcall delay1s
 			sjmp test
 		ret	
