@@ -34,17 +34,26 @@
 ; reg-2->Snake Game Operations
 ; reg-3->Random Use
 
+org 0000h
+	ljmp main
+
 org 002bh
-	
+		main:
+		clr p2.7
 		mov p0,#0ffh ;set p0 as input port
 		
 		setb p2.3 ;set rest pin to 1 i.e. inactive mode
 		
-		mov sp,#30h ;move sp to ram loaction 20h
+		mov sp,#60h ;move sp to ram loaction 20h
 		
 		mov tmod,#02h
 		mov th0,#00h
 		setb tr0
+		
+		mov tcon,#01h
+		
+		mov ie,#81h
+		
 		
 		lcall delay ;some delay is introduced purposefully
 		lcall delay
@@ -60,6 +69,51 @@ org 002bh
 		lcall clrscreen
 		
 		lcall snake_game
+		stay:sjmp stay
+
+
+org 0003h
+	setb p2.7
+	ljmp main_isr
+	returnback:reti
+org 900h
+	main_isr:
+				push psw
+				push acc
+				setb psw.3 ;select reg-1 for Keyboard Opreations
+				clr psw.4
+				
+				/*no_rel:mov a,p0
+				cjne a,#0ffh,no_rel
+				lcall dboun
+				
+				wait:mov a,p0
+				cjne a,#0ffh,identify
+				sjmp wait*/
+				
+				identify:lcall dboun ;now the program serves to check 
+				mov a,p0 ;which key is pressed
+				
+				mov r0,#00h
+				mov r1,#08h
+				
+				again: rrc  a ;key indentification logic starts here
+				jc next_key
+				sjmp found
+				
+				next_key: inc r0
+				djnz r1,again
+				ljmp returnback
+				
+				found: 
+				mov a,r0; reg where key code is stored
+				mov 13h,a; 13h (reg-3 of reg-bank-2) stores the direction coordinates
+				clr p2.7
+				pop acc
+				pop psw
+				ljmp returnback
+			
+
 
 	
 org 0100h ;here lies the codes for GLCD Operations
@@ -109,10 +163,10 @@ org 0100h ;here lies the codes for GLCD Operations
 		ret ;for datawrt
 		
 		display_char: ;subroutine to display a charcter form lookup table
-			  ;r5,r0 of reg bak 1 used
+			  ;r5,r0 of reg bak 0 used
 				push psw
-				
-				mov psw ,#08h //reg bank 1
+				clr psw.3
+				clr psw.4
 				mov r5,#00h	; Initialize index for looping through the string
 				mov r0,#08
 				back2nxt:
@@ -131,7 +185,8 @@ org 0100h ;here lies the codes for GLCD Operations
 			  ;r7 and r6 of reg bank 0 used
 				push psw
 				
-				mov psw ,#08h //reg bank 1
+				clr psw.3
+				clr psw.4
 				mov r7,#2
 				here2:mov r6,#255
 				here1:djnz r6,here1
@@ -143,11 +198,11 @@ org 0100h ;here lies the codes for GLCD Operations
 
 		
 		delay1s:;1sec delay generation assuming 12Mhz Clk
-				;r7 and r6 of reg bank 0 used
+				;r7,r5 and r6 of reg bank 0 used
 		
 			push psw
-			
-			mov psw ,#08h //reg bank 1
+			clr psw.3
+			clr psw.4
 			mov r7,#04
 			here0:mov r6,#250
 			here10:mov r5,#250
@@ -259,34 +314,38 @@ org 0100h ;here lies the codes for GLCD Operations
 			
 		ret ;for set_pg
 		
-clrscreen:
-		  ;r4,r3,r2,r1 of reg bank 1 used
-		push psw
-		mov psw ,#08h //reg bank 1
-		clr p2.4 ;cs1=0
-		clr p2.5;cs2=0 
-		mov r4,#0b8h
-		mov r3,#8
-		
-		mov a,#40h ;first col
-		lcall cmdwrt
-		lcall delay
-		mov a,#0c0h ;z
-		lcall cmdwrt
-		lcall delay
-		mov dptr,#clear
-		
-		ag: mov a,r4; initially at first page
-			   lcall cmdwrt
-			   lcall delay
-			   mov r2,#8
-			   back1:lcall display_char
-			   djnz r2,back1		
-			   inc r4
-		 djnz r3,ag
-		 
-		pop psw
-		ret ;for clear screen
+		clrscreen:
+				  ;r4,r3,r2,r1 of reg bank 0 used
+				push psw
+				clr psw.3
+				clr psw.4
+				clr p2.4 ;cs1=0
+				clr p2.5;cs2=0 
+				mov r4,#0b8h
+				mov r3,#8
+				
+				mov a,#40h ;first col
+				lcall cmdwrt
+				lcall delay
+				mov a,#0c0h ;z
+				lcall cmdwrt
+				lcall delay
+				mov dptr,#clear
+				
+				ag: mov a,r4; initially at first page
+					   lcall cmdwrt
+					   lcall delay
+					   mov r2,#8
+					   back1:lcall display_char
+					   djnz r2,back1		
+					   inc r4
+				 djnz r3,ag
+				 
+				pop psw
+				ret ;for clear screen
+
+
+
 		
 org 500h;lookup tables	for char ; black=1 ;upper nibble =lower 4 bits of 8 bits of col
 	
@@ -305,10 +364,11 @@ org 500h;lookup tables	for char ; black=1 ;upper nibble =lower 4 bits of 8 bits 
 		body_left_head_up: db 00h,00h,3eh,3fh,3fh,3eh,3ch,18h
 		body_left_head_down:db 00h,00h,7ch,0fch,0fch,7ch,3ch,1ch
 			
-		over:db 00h, 01h, 02h, 03h, 04h, 05h, 06h, 07h, 08h, 09h, 0ah, 0bh, 0ch, 0dh, 0eh, 0fh
-			 db 1fh, 2fh, 3fh, 4fh, 5fh, 6fh
-			 db 7fh, 7eh, 7dh, 7ch, 7bh, 7ah, 79h, 78h, 77h, 76h, 75h, 74h, 73h, 72h, 71h, 70h
-			 db 60h, 50h, 40h, 30h, 20h, 10h
+		over: db 00h,0fh,7fh,70h //4 
+		over1:db 01h, 02h, 03h, 04h, 05h, 06h, 07h, 08h, 09h, 0ah, 0bh, 0ch, 0dh, 0eh //14
+		over2:db 1fh, 2fh, 3fh, 4fh, 5fh, 6fh //6
+		over3:db 7eh, 7dh, 7ch, 7bh, 7ah, 79h, 78h, 77h, 76h, 75h, 74h, 73h, 72h, 71h //14
+		over4:db 60h, 50h, 40h, 30h, 20h, 10h //6
 			
 		N: DB 127,127,6,12,24,127,127,0   ; N
 		chA: DB 124,126,19,19,126,124,0,0    ; A
@@ -316,13 +376,17 @@ org 500h;lookup tables	for char ; black=1 ;upper nibble =lower 4 bits of 8 bits 
 		G: DB 62,127,65,81,81,113,0,0      ; G
 		M: DB 127,127,6,12,6,127,127,0     ; M
 		D: DB 127,127,65,65,127,62,0,0
+		S: DB 38,111,73,73,123,50,0,0
+		O: DB 62,127,65,65,127,62,0,0
+		V: DB 31,63,96,96,63,31,0,0
+		R: DB 127,127,9,25,127,102,0,0
 org 600h; snake game 
 	
 	snake_game:
 
 			setb psw.4
 			clr psw.3 ;set Reg-Bank-2 For Game Operations
-			
+	
 			;lets clear what each register of this register bank represents:
 			;r0->stores the value of ram location 30h from where the coordinates of snakes body position can be accessed
 			;r1->stores the coordinates of head of snake
@@ -358,48 +422,15 @@ org 600h; snake game
 			mov dptr,#food
 			lcall display_char
 			
+			test:
+			//mov ie,#00h
 			lcall calc_pos
 			lcall update_pos
 			lcall update_lcd
-
-			
-			; keyboard logic starts here
-		
-			here:push psw
-				setb psw.3 ;select reg-1 for Keyboard Opreations
-				clr psw.4
-				
-				no_rel:mov a,p0
-				cjne a,#0ffh,no_rel
-				lcall dboun
-				
-				wait:mov a,p0
-				cjne a,#0ffh,identify
-				sjmp wait
-				
-				identify:lcall dboun ;now the program serves to check 
-				mov a,p0 ;which key is pressed
-				
-				mov r0,#00h
-				mov r1,#08h
-				
-				again: rrc  a ;key indentification logic starts here
-				jc next_key
-				sjmp found
-				
-				next_key: inc r0
-				djnz r1,again
-				sjmp no_rel
-				
-				found: mov a,r0; reg where key code is stored
-				mov 13h,a; 13h (reg-3 of reg-bank-2) stores the direction coordinates
-				lcall calc_pos
-				lcall update_pos
-				lcall update_lcd
-
-				pop psw
-				
-				sjmp here
+			mov ie,#81h
+			lcall delay1s
+			sjmp test
+		ret	
 			
 			choose_coord: ;this subroutine sets the cursor value to the coordinates contained in reg-a
 			
@@ -505,101 +536,6 @@ org 600h; snake game
 				lcall check_coll
 			ret ;for update_lcd
 
-
-			food_pos:
-				
-				clr psw.3 ;reg bank 2 selected
-				setb psw.4
-				push b
-				mov r5,tl0 ;timer instantaneous value in r5
-				mov a,r5
-				anl a,#7fh
-				mov r5,a
-				cjne r3,#00h,ch1	;if r3=00 horizontal movement
-				ch0:
-				mov a,r1            ;head in a
-				anl a,#0f0h			;head pg in a
-				mov b,a				;head pg in b
-				mov a,r5			;food in a
-				anl a,#0f0h			;food pg in a
-				subb a,b			; if both equal inc pg 
-				jnz go_for_it 		;compare head and food pos if not equal then no change in r5 i.e food pos
-				mov a,b				;food pg in a
-				cjne a,#70h,not_dec	;if it is in last pg dec pg that is 70 to 60 else inc like 50 to 60
-				acall dec_pg
-				not_dec:
-				acall inc_pg
-				sjmp go_for_it
-				ch1:cjne r3,#00h,ch23 ; if r3=01 then also horizontal movement
-				sjmp ch0			  ; thus same logic as for r3=00
-				
-				ch23:				  ;else if r3=02 or 03
-				mov a,r1            ;head in a
-				anl a,#0fh			;head col in a
-				mov b,a				;head col in b
-				mov a,r5			;food in a
-				anl a,#0fh			;food col in a
-				subb a,b			; if both equal inc col 
-				jnz go_for_it
-				mov a,b				;food col in a
-				cjne a,#15h,not_dec1	;if it is in last col dec col that is 15 to 14 else inc like 00 to 01
-				acall dec_col
-				not_dec1:
-				acall inc_col
-	
-				
-				go_for_it:
-				mov a,r5			; mov food to location stored in r5
-				lcall choose_coord
-				mov dptr,#food
-				lcall display_char
-				pop b
-				
-			ret ;ret from food_pos
-			
-			inc_pg:
-				
-				mov a,#10h
-				add a,r5
-				mov r5,a
-			ret
-			inc_col:
-			    mov a,#01h
-				add a,r5
-				mov r5,a
-			ret
-			dec_pg:
-				
-				mov a,#10h
-				mov b,a
-				mov a,r5
-				subb a,b
-				mov r5,a
-			ret
-			dec_col:
-				mov a,#01h
-				mov b,a
-				mov a,r5
-				subb a,b
-				mov r5,a
-			ret
-			
-			check_coll:
-				mov a,r1
-				push psw
-				setb psw.4
-				setb psw.3
-				mov r7,a
-				mov dptr,#over
-				mov r0,#44
-				chk_nxt:clr a
-						movc a,@a+dptr
-						cjne a,1fh,cont
-						ljmp game_over
-						cont:inc dptr
-				djnz r0,chk_nxt				
-				pop psw
-				ret
 				
 			clear_tail:
 				
@@ -609,6 +545,8 @@ org 600h; snake game
 				lcall display_char
 			
 			ret;for clear tail
+				
+
 			
 			update_tail_position:
 				
@@ -757,20 +695,172 @@ org 600h; snake game
 			
 			ret ;for update_head_position
 			
+			food_pos:
+				
+				clr psw.3 ;reg bank 2 selected
+				setb psw.4
+				push b
+				mov r5,tl0 ;timer instantaneous value in r5
+				lcall limit_food
+				mov a,r5
+				anl a,#7fh
+				mov r5,a
+				cjne r3,#00h,ch1	;if r3=00 horizontal movement
+				ch0:
+				mov a,r1            ;head in a
+				anl a,#0f0h			;head pg in a
+				mov b,a				;head pg in b
+				mov a,r5			;food in a
+				anl a,#0f0h			;food pg in a
+				subb a,b			; if both equal inc pg 
+				jnz go_for_it 		;compare head and food pos if not equal then no change in r5 i.e food pos
+				mov a,b				;food pg in a
+				cjne a,#70h,not_dec	;if it is in last pg dec pg that is 70 to 60 else inc like 50 to 60
+				acall dec_pg
+				not_dec:
+				acall inc_pg
+				sjmp go_for_it
+				ch1:cjne r3,#00h,ch23 ; if r3=01 then also horizontal movement
+				sjmp ch0			  ; thus same logic as for r3=00
+				
+				ch23:				  ;else if r3=02 or 03
+				mov a,r1            ;head in a
+				anl a,#0fh			;head col in a
+				mov b,a				;head col in b
+				mov a,r5			;food in a
+				anl a,#0fh			;food col in a
+				subb a,b			; if both equal inc col 
+				jnz go_for_it
+				mov a,b				;food col in a
+				cjne a,#15h,not_dec1	;if it is in last col dec col that is 15 to 14 else inc like 00 to 01
+				lcall dec_col
+				not_dec1:
+				acall inc_col
+	
+				
+				go_for_it:
+				mov a,r5			; mov food to location stored in r5
+				lcall choose_coord
+				mov dptr,#food
+				lcall display_char
+				pop b
+				
+			ret ;ret from food_pos
+			
+			inc_pg:
+				push psw
+				setb psw.4
+				clr psw.3
+				mov a,#10h
+				add a,r5
+				mov r5,a
+				pop psw
+			ret
+			inc_col:
+				push psw
+				setb psw.4
+				clr psw.3
+			    mov a,#01h
+				add a,r5
+				mov r5,a
+				pop psw
+			ret
+			dec_pg:
+				push psw
+				setb psw.4
+				clr psw.3
+				mov a,#10h
+				mov b,a
+				mov a,r5
+				subb a,b
+				mov r5,a
+				pop psw
+			ret
+			dec_col:
+				push psw
+				setb psw.4
+				clr psw.3
+				mov a,#01h
+				mov b,a
+				mov a,r5
+				subb a,b
+				mov r5,a
+				pop psw
+			ret
+			
+			check_coll:
+				mov a,r1
+				push psw
+				setb psw.4
+				setb psw.3
+				mov r7,a
+				mov dptr,#over
+				mov r0,#44
+				chk_nxt:clr a
+						movc a,@a+dptr
+						cjne a,1fh,cont
+						ljmp game_over
+						cont:inc dptr
+				djnz r0,chk_nxt				
+				pop psw
+				ret;for check_col
+				
+			limit_food:
+				mov a,r5
+				push psw
+				setb psw.4
+				setb psw.3
+				mov r7,a
+				/*mov dptr,#over1
+				mov r0,#14
+				chk_1:	clr a
+						movc a,@a+dptr
+						cjne a,1fh,conti
+						ljmp row1
+						conti:inc dptr
+				djnz r0,chk_1
+				mov dptr,#over3
+				mov r0,#14
+				chk_2:	clr a
+						movc a,@a+dptr
+						cjne a,1fh,contii
+						ljmp row_last
+						contii:inc dptr
+				djnz r1,chk_1 
+				row1: lcall inc_col
+					  sjmp exit_limit_food
+				row_last: lcall dec_col
+				sjmp exit_limit_food*/
+				pop psw
+				exit_limit_food:
+				ret;for limit food
+			
 			game_over:
 				lcall clrscreen
-				mov a ,#46h
+				mov a ,#36h
 				lcall choose_coord
+				mov dptr,#G
+				lcall display_char
+				mov dptr,#chA
+				lcall display_char
+				mov a,#38h
+				lcall choose_coord
+				mov dptr,#M
+				lcall display_char
 				mov dptr,#E
 				lcall display_char
-				mov dptr,#N
+				mov a ,#46h
+				lcall choose_coord
+				mov dptr,#O
+				lcall display_char
+				mov dptr,#V
 				lcall display_char
 				mov a,#48h
 				lcall choose_coord
-				mov dptr,#D
+				mov dptr,#E
 				lcall display_char
-				mov dptr,#D
+				mov dptr,#R
 				lcall display_char
 				ends:sjmp ends
-			
+
 end
