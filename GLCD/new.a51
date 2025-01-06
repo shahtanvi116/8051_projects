@@ -365,10 +365,10 @@ org 500h;lookup tables	for char ; black=1 ;upper nibble =lower 4 bits of 8 bits 
 		body_left_head_down:db 00h,00h,7ch,0fch,0fch,7ch,3ch,1ch
 			
 		over: db 00h,0fh,7fh,70h //4 
-		over1:db 01h, 02h, 03h, 04h, 05h, 06h, 07h, 08h, 09h, 0ah, 0bh, 0ch, 0dh, 0eh //14
-		over2:db 1fh, 2fh, 3fh, 4fh, 5fh, 6fh //6
-		over3:db 7eh, 7dh, 7ch, 7bh, 7ah, 79h, 78h, 77h, 76h, 75h, 74h, 73h, 72h, 71h //14
-		over4:db 60h, 50h, 40h, 30h, 20h, 10h //6
+			  db 01h, 02h, 03h, 04h, 05h, 06h, 07h, 08h, 09h, 0ah, 0bh, 0ch, 0dh, 0eh //14
+		      db 1fh, 2fh, 3fh, 4fh, 5fh, 6fh //6
+		      db 7eh, 7dh, 7ch, 7bh, 7ah, 79h, 78h, 77h, 76h, 75h, 74h, 73h, 72h, 71h //14
+		      db 60h, 50h, 40h, 30h, 20h, 10h //6
 			
 		N: DB 127,127,6,12,24,127,127,0   ; N
 		chA: DB 124,126,19,19,126,124,0,0    ; A
@@ -700,10 +700,10 @@ org 600h; snake game
 				setb psw.4
 				push b
 				mov r5,tl0 ;timer instantaneous value in r5
-				lcall limit_food
 				mov a,r5
 				anl a,#7fh
 				mov r5,a
+				lcall limit_food
 				cjne r3,#00h,ch1	;if r3=00 horizontal movement
 				ch0:
 				mov a,r1            ;head in a
@@ -714,7 +714,7 @@ org 600h; snake game
 				subb a,b			; if both equal inc pg 
 				jnz go_for_it 		;compare head and food pos if not equal then no change in r5 i.e food pos
 				mov a,b				;food pg in a
-				cjne a,#70h,not_dec	;if it is in last pg dec pg that is 70 to 60 else inc like 50 to 60
+				cjne a,#60h,not_dec	;if it is in last pg dec pg that is 60 to 50 else inc like 50 to 60
 				acall dec_pg
 				not_dec:
 				acall inc_pg
@@ -731,7 +731,7 @@ org 600h; snake game
 				subb a,b			; if both equal inc col 
 				jnz go_for_it
 				mov a,b				;food col in a
-				cjne a,#15h,not_dec1	;if it is in last col dec col that is 15 to 14 else inc like 00 to 01
+				cjne a,#0fh,not_dec1	;if it is in last col dec col that is 1f to 1e else inc like 00 to 01
 				lcall dec_col
 				not_dec1:
 				acall inc_col
@@ -804,35 +804,35 @@ org 600h; snake game
 				pop psw
 				ret;for check_col
 				
-			limit_food:
+			limit_food: ;pg=page i.e. row from 0 to 7 and col=coloumn from 0 to f
 				mov a,r5
 				push psw
-				setb psw.4
 				setb psw.3
-				mov r7,a
-				/*mov dptr,#over1
-				mov r0,#14
-				chk_1:	clr a
-						movc a,@a+dptr
-						cjne a,1fh,conti
-						ljmp row1
-						conti:inc dptr
-				djnz r0,chk_1
-				mov dptr,#over3
-				mov r0,#14
-				chk_2:	clr a
-						movc a,@a+dptr
-						cjne a,1fh,contii
-						ljmp row_last
-						contii:inc dptr
-				djnz r1,chk_1 
-				row1: lcall inc_col
-					  sjmp exit_limit_food
-				row_last: lcall dec_col
-				sjmp exit_limit_food*/
-				pop psw
-				exit_limit_food:
-				ret;for limit food
+				setb psw.4
+				mov r7,a      //r7==>1fh location
+				anl a,#0f0h	  //lower nibble masked off, so if result is zero then page that is upper nibble iz 0
+				jz pg_zero    //if pg is zero then jump to pg_zero
+				sjmp pg_notzero 
+				pg_zero: lcall inc_pg //inc pg if it is zero so now pg=1
+						 mov r7,a     // updated value will be in r5 of reg bank 2 as well as a, copy it in r7 of reg bank 4 as well
+						 sjmp chk_col
+				pg_notzero:	cjne a,#70h,chk_col
+							lcall dec_pg // if pg=7 then now it will become 6
+							mov r7,a
+							
+				chk_col: mov a,r7
+						 anl a,#0fh //upper nibble that is page masked off, if result is zero then it means col is zero
+						 jz col_zero
+						 sjmp col_notzero
+						 col_zero: lcall inc_col // col from 0 now becomes 1
+									mov r7,a
+									sjmp allgood
+						 col_notzero: cjne a,#0fh , allgood
+									  lcall dec_col //col from f to e
+				allgood: pop psw
+						ret; ret for limit_food
+						 
+				
 			
 			game_over:
 				lcall clrscreen
