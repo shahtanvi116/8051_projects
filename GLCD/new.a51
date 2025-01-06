@@ -50,7 +50,7 @@ org 002bh
 		mov th0,#00h
 		setb tr0
 		
-		mov tcon,#01h
+		orl tcon,#01h
 		
 		mov ie,#81h
 		
