@@ -75,21 +75,12 @@ org 002bh
 org 0003h
 	setb p2.7
 	ljmp main_isr
-	returnback:reti
 org 900h
 	main_isr:
 				push psw
 				push acc
 				setb psw.3 ;select reg-1 for Keyboard Opreations
 				clr psw.4
-				
-				/*no_rel:mov a,p0
-				cjne a,#0ffh,no_rel
-				lcall dboun
-				
-				wait:mov a,p0
-				cjne a,#0ffh,identify
-				sjmp wait*/
 				
 				identify:lcall dboun ;now the program serves to check 
 				mov a,p0 ;which key is pressed
@@ -111,7 +102,7 @@ org 900h
 				clr p2.7
 				pop acc
 				pop psw
-				ljmp returnback
+				returnback:reti
 			
 
 
@@ -423,10 +414,11 @@ org 600h; snake game
 			lcall display_char
 			
 			test:
-			//mov ie,#00h
+			mov ie,#00h
 			lcall calc_pos
 			lcall update_pos
 			lcall update_lcd
+			mov ie,#81h
 			lcall delay1s
 			sjmp test
 		ret	
