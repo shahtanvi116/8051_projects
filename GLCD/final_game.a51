@@ -68,7 +68,7 @@ org 002bh
 		
 		lcall clrscreen
 		
-		//lcall snake_game
+		lcall snake_game
 		stay:sjmp stay
 
 
@@ -458,93 +458,7 @@ org 250h;lookup tables	for char ; black=1 ;upper nibble =lower 4 bits of 8 bits 
 		C8: DB 00h,6ch,0feh,92h,92h,0feh,6ch,00h     ; 8
 		C9: DB 00h,4ch,0deh,92h,92h,0feh,7ch,00h    ; 9
 			
-		wel:DB 127,127,48,24,48,127,127,0
-			DB 127,127,73,73,65,65,0,0
-			DB 127,127,64,64,64,64,0,0
-			DB 62,127,65,65,65,65,0,0
-			DB 62,127,65,65,127,62,0,0
-			DB 127,127,6,12,6,127,127,0
-			DB 127,127,73,73,65,65,0,0
-		to:	DB 1,1,127,127,1,1,0,0
-			DB 62,127,65,65,127,62,0,0
-		the:DB 1,1,127,127,1,1,0,0
-			DB 127,127,8,8,127,127,0,0
-			DB 127,127,73,73,65,65,0,0
-		world:DB 127,127,48,24,48,127,127,0
-			  DB 62,127,65,65,127,62,0,0
-			  DB 127,127,9,25,127,102,0,0
-			  DB 127,127,64,64,64,64,0,0
-			  DB 127,127,65,65,127,62,0,0
-		of: DB 62,127,65,65,127,62,0,0
-			DB 127,127,9,9,1,1,0,0
-		gaming: DB 62,127,65,81,81,113,0,0
-				DB 124,126,19,19,126,124,0,0
-				DB 127,127,6,12,6,127,127,0
-				DB 65,65,127,127,65,65,0,0
-				DB 127,127,6,12,24,127,127,0
-				DB 62,127,65,81,81,113,0,0
-		with:	DB 127,127,48,24,48,127,127,0
-				DB 65,65,127,127,65,65,0,0
-				DB 1,1,127,127,1,1,0,0
-				DB 127,127,8,8,127,127,0,0
-		g_yantra:DB 62,127,65,81,81,113,0,0
-				 DB 00h,00h,18h,18h,18h,18h,00h,00h
-				 DB 7,15,120,120,15,7,0,0
-				 DB 124,126,19,19,126,124,0,0
-				 DB 127,127,6,12,24,127,127,0
-				 DB 1,1,127,127,1,1,0,0
-				 DB 127,127,9,25,127,102,0,0
-				 DB 124,126,19,19,126,124,0,0
-		choose: DB 62,127,65,65,65,65,0,0
-				DB 127,127,8,8,127,127,0,0
-				DB 62,127,65,65,127,62,0,0
-				DB 62,127,65,65,127,62,0,0
-				DB 38,111,73,73,123,50,0,0
-				DB 127,127,73,73,65,65,0,0
-		game: DB 62,127,65,81,81,113,0,0
-				DB 124,126,19,19,126,124,0,0
-			  DB 127,127,6,12,6,127,127,0
-				DB 127,127,73,73,65,65,0,0
-					
-		created:DB 62,127,65,65,65,65,0,0
-			    DB 127,127,9,25,127,102,0,0
-				DB 127,127,73,73,65,65,0,0
-				DB 124,126,19,19,126,124,0,0
-				DB 1,1,127,127,1,1,0,0
-				DB 127,127,73,73,65,65,0,0
-				DB 127,127,65,65,127,62,0,0
-				
-				
-			by:DB 127,127,73,73,127,54,0,0
-				DB 7,15,120,120,15,7,0,0
-				DB 00h,00h,18h,18h,18h,18h,00h,00h
-		rudra:DB 127,127,9,25,127,102,0,0
-			  DB 63,127,64,64,127,63,0,0
-			  DB 127,127,65,65,127,62,0,0
-			  DB 127,127,9,25,127,102,0,0
-			  DB 124,126,19,19,126,124,0,0
-			  
-		joshi:DB 48,112,64,64,127,63,0,0
-			  DB 62,127,65,65,127,62,0,0
-			  DB 38,111,73,73,123,50,0,0
-			  DB 127,127,8,8,127,127,0,0
-			  DB 65,65,127,127,65,65,0,0  
-		tanvi:DB 1,1,127,127,1,1,0,0
-			  DB 124,126,19,19,126,124,0,0
-			  DB 127,127,6,12,24,127,127,0
-			  DB 31,63,96,96,63,31,0,0
-			  DB 65,65,127,127,65,65,0,0
-				  
-		shah: DB 38,111,73,73,123,50,0,0
-			  DB 127,127,8,8,127,127,0,0
-			  DB 124,126,19,19,126,124,0,0
-			  DB 127,127,8,8,127,127,0,0
-				  
-		snake:DB 38,111,73,73,123,50,0,0
-			  DB 127,127,6,12,24,127,127,0
-			  DB 124,126,19,19,126,124,0,0
-			  DB 127,127,8,28,119,99,0,0
-			  DB 127,127,73,73,65,65,0,0
+		start:db 11h,6eh,17h,61h,22h,5dh,28h,55h,33h,49h,16h,64h,15h,51h,25h,63h,37h,59h,44h,1eh
 			
 org 700h; snake game 
 	
@@ -753,7 +667,9 @@ org 700h; snake game
 				
 				lcall food_pos ; update food_pos if it merge with head 
 				
+				
 				exit_update_lcd:
+				
 				lcall check_coll
 			ret ;for update_lcd
 				
@@ -1042,66 +958,62 @@ org 700h; snake game
 			
 			ret ;for update_body_position
 			
-			food_pos:
-				
-				clr psw.3 ;reg bank 2 selected
-				setb psw.4
-				push b
-				mov r5,tl0 ;timer instantaneous value in r5
-				mov a,r5
-				anl a,#7fh ;and-ing with 7fh is done because this is the max coordinate on GLCD screen & we want
-				mov r5,a ;to restrict the random food position within the max possible coordinate value (Restricted Radomization of Food Element) Very Smart...
-				
-				lcall limit_food ;
-				
-				cjne r3,#00h,ch1	;if r3=00 horizontal movement
-				
-				ch0:
-				
-				mov a,r1            ;head in a
-				anl a,#0f0h			;head pg in a
-				mov b,a				;head pg in b
-				mov a,r5			;food in a
-				anl a,#0f0h			;food pg in a
-				clr c
-				subb a,b			;if both equal inc pg 
-				
-				jnz go_for_it 		;compare head and food pos if not equal then no change in r5 i.e food pos
-				
-				mov a,b				;food pg in a
-				cjne a,#60h,not_dec	;if it is in last pg FOR VALID RESTRECITED COORD THEN,dec pg that is 60 to 50 else inc like 50 to 60
-				lcall dec_pg
-				
-				not_dec:
-				lcall inc_pg
-				sjmp go_for_it
-				
-				ch1:cjne r3,#01h,ch23 ; if r3=01 then also horizontal movement
-				sjmp ch0			  ; thus same logic as for r3=00
-				
-				ch23:				;else if r3=02 or 03
-				mov a,r1            ;head in a
-				anl a,#0fh			;head col in a
-				mov b,a				;head col in b
-				mov a,r5			;food in a
-				anl a,#0fh			;food col in a
-				clr c
-				subb a,b			; if both equal inc col 
-				jnz go_for_it
-				mov a,b				;food col in a
-				cjne a,#0fh,not_dec1	;if it is in last col dec col that is 1f to 1e else inc like 00 to 01
-				lcall dec_col
-				not_dec1:
-				lcall inc_col
+food_pos:;r5 of reg bank 2 and r6 of reg bank 2 , need to chage r6
 	
+	
+	setb psw.4
+	clr psw.3
+	push 16h
+	
+	mov dptr,#start  ;in dptr the starting value where all random food coordinates are stored...for now total 10 coordinates are there
+	mov r5,tl0       ;random value in r5
+	mov a,r5     	;random value in a
+	anl a,#19		;limit the random value in  0 to 20 bcz it is basically the count which we will add to dptr to point to some random coordinate
+	mov r6,a		;r6 will remember the count i.e form '#start' which position in lookup we are pointing that count
+
+	movc a,@a+dptr	;mov the coord corresponding to pointed vaule in a...so now a has random food position but randomness is controlled
+	mov r5,a		;mov the food coordinate into r5
+	
+    check_overlap: mov 20h,r1		;due to syntax limitaion of cjne we are using 20h to store specific value (head,tail or other body element) at a time so that it can be compared with the newly generated conrolled random food coordinate which is till now stored in r5 and a
+					cjne a,20h,ch_t ;compare food coord with head coord
+					sjmp nxt_coord ;if equal we have to change coord so jmp to nxt_coord
+					
+				ch_t:mov 20h,r2			;mov tail coord in 20h
+				     cjne a,20h,ch_b	;if not equal we will compare tail and food coordinate
+					sjmp nxt_coord		;if equal jmp to nxt coord else go for body comparision
+					
+				ch_b: mov 20h,@r0					;first mov 1st body elemnt coord that is stored in 30h (r0 points 30h) in 20h
+					  cjne r4,#01h,ch_b_len_nt1		;if length is one then we only have to check whether food overlaps with one body element but if it is > 1 the we'll have to check for (r4) body elemnts...(r4)=length of body elements
+					  cjne a,20h,finally_done		;check for 1 elemnt as r4=1 and if no overlapping then done otherwise nxt_coord
+					  sjmp nxt_coord				
+				ch_b_len_nt1: push 10h				;first push r0=10h bcz due to limitaion of reg we will use r0 to point diff elements
+							push 14h				;r4=14h ,reg bank 2
+				do_again: cjne a,20h,nxt_element	;a=food coord and 20h = coord in 30h for first iteration...compare and decide accordingly
+						  sjmp nxt_coord
+						nxt_element: inc r0			; element in 30h is compared the in r0 so now it point to 31h
+							mov 20h,@r0				;mov value stored in 31h in 20h
+						djnz r4,do_again			;repeat for r4 times i.e if body length is 2 then r4=2 and this will repeat for 30h and 31h 
+						pop 14h						;pop r4
+						pop 10h						; pop r0
+						sjmp finally_done			;if till here it has not jumped to nxt_coord this means there is no overlapping so we are good to go
 				
-				go_for_it:
+	
+	nxt_coord: cjne r6,#19,barabar 				;r6 has count of which random position out stored 10 we are using...if count is 10 then it means that it will be pointion to last element of pur lookup array so we will re initialize ut by making r6 0
+				mov r6,#00h							;re initialize r6
+				sjmp check_again		
 				
-				mov a,r5			; mov food to location stored in r5
+				barabar: inc r6						; if r6<10 then no issue we can simply in it and then get respective value
+						 mov a,r6					;mov count in a...so say if r6 was 3h so after incr it is 4h and so now a has 4 stored
+				check_again: movc a,@a+dptr			;thus from the stored values choose 4th one
+							sjmp check_overlap		;as it entered nxt_coord it meant there was overlaping somewhere so after giving new coordinates again check if still overlapping exists 
+			 
+			 finally_done:
+			 mov r5,a 
+			 
 				lcall choose_coord
 				mov dptr,#food
 				lcall display_char
-				pop b
+				pop 16h
 				
 				mov a,r4 ;cuurent body element length
 				
@@ -1123,80 +1035,8 @@ org 700h; snake game
 				mov r2,b ;store the current tails coordinates to the one from where it was cleared earlier because food element is eaten and condition requires to do so
 			
 			exit_food_pos:
-			ret ;ret from food_pos
+			ret ;ret from food_pos 
 			
-			inc_pg:
-				push psw
-				setb psw.4
-				clr psw.3
-				mov a,#10h
-				add a,r5
-				mov r5,a
-				pop psw
-			ret
-			inc_col:
-				push psw
-				setb psw.4
-				clr psw.3
-			    mov a,#01h
-				add a,r5
-				mov r5,a
-				pop psw
-			ret
-			dec_pg:
-				push psw
-				setb psw.4
-				clr psw.3
-				mov a,#10h
-				mov b,a
-				mov a,r5
-				subb a,b
-				mov r5,a
-				pop psw
-			ret
-			dec_col:
-				push psw
-				setb psw.4
-				clr psw.3
-				mov a,#01h
-				mov b,a
-				mov a,r5
-				subb a,b
-				mov r5,a
-				pop psw
-			ret
-			
-			limit_food: ;pg=page i.e. row from 0 to 7 and col=coloumn from 0 to f
-			
-			;this subroutine checks if the generated random values lies at any corner part of any coordinate say 00h,...,0fh:10h,...,1fh:...:and 70h,...,7fh
-			;and if found to be on any of this coordinate then apply change the coordinates appropriately so that beacuse of food grabbing game over is not trigerred
-				mov a,r5
-				push psw
-				setb psw.3
-				setb psw.4
-				mov r7,a      //r7==>1fh location
-				anl a,#0f0h	  //lower nibble masked off, so if result is zero then page that is upper nibble iz 0
-				jz pg_zero    //if pg is zero then jump to pg_zero
-				sjmp pg_notzero 
-				pg_zero: lcall inc_pg //inc pg if it is zero so now pg=1
-						 mov r7,a     // updated value will be in r5 of reg bank 2 as well as a, copy it in r7 of reg bank 3 as well
-						 sjmp chk_col
-				pg_notzero:	cjne a,#70h,chk_col
-							lcall dec_pg // if pg=7 then now it will become 6
-							mov r7,a
-							
-				chk_col: mov a,r7
-						 anl a,#0fh //upper nibble that is page masked off, if result is zero then it means col is zero
-						 jz col_zero
-						 sjmp col_notzero
-						 col_zero: lcall inc_col // col from 0 now becomes 1
-									mov r7,a
-									sjmp allgood
-						 col_notzero: cjne a,#0fh , allgood
-									  lcall dec_col //col from f to e
-				allgood: pop psw
-						
-			ret; ret for limit_food
 			
 			check_coll: ;this subroutine checks for collision with GLCD boundary coordinates
 			
