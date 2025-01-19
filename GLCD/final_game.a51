@@ -965,7 +965,7 @@ food_pos:;r5 of reg bank 2 and r6 of reg bank 2 , need to chage r6
 	clr psw.3
 	push 16h
 	
-	mov dptr,#start  ;in dptr the starting value where all random food coordinates are stored...for now total 10 coordinates are there
+	mov dptr,#start  ;in dptr the starting value where all random food coordinates are stored...for now total 20 coordinates are there
 	mov r5,tl0       ;random value in r5
 	mov a,r5     	;random value in a
 	anl a,#19		;limit the random value in  0 to 19(total 20 coordinates saved) bcz it is basically the count which we will add to dptr to point to some random coordinate
