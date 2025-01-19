@@ -963,7 +963,7 @@ food_pos:;r5 of reg bank 2 and r6 of reg bank 2 and 20h memory location
 	
 	setb psw.4
 	clr psw.3
-	push 16h
+	push 16h        ;push r6 of reg bank 2
 	
 	mov dptr,#start  ;in dptr the starting value where all random food coordinates are stored...for now total 10 coordinates are there
 	mov r5,tl0       ;random value in r5
