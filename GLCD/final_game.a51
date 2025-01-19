@@ -958,7 +958,7 @@ org 700h; snake game
 			
 			ret ;for update_body_position
 			
-food_pos:;r5 of reg bank 2 and r6 of reg bank 2 , need to chage r6
+food_pos:;r5 of reg bank 2 and r6 of reg bank 2 and 20h memory location
 	
 	
 	setb psw.4
