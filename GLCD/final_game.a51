@@ -958,17 +958,17 @@ org 700h; snake game
 			
 			ret ;for update_body_position
 			
-food_pos:;r5 of reg bank 2 and r6 of reg bank 2 and 20h memory location
+food_pos:;r5 of reg bank 2 and r6 of reg bank 2 , need to chage r6
 	
 	
 	setb psw.4
 	clr psw.3
-	push 16h        ;push r6 of reg bank 2
+	push 16h
 	
 	mov dptr,#start  ;in dptr the starting value where all random food coordinates are stored...for now total 10 coordinates are there
 	mov r5,tl0       ;random value in r5
 	mov a,r5     	;random value in a
-	anl a,#19		;limit the random value in  0 to 20 bcz it is basically the count which we will add to dptr to point to some random coordinate
+	anl a,#19		;limit the random value in  0 to 19(total 20 coordinates saved) bcz it is basically the count which we will add to dptr to point to some random coordinate
 	mov r6,a		;r6 will remember the count i.e form '#start' which position in lookup we are pointing that count
 
 	movc a,@a+dptr	;mov the coord corresponding to pointed vaule in a...so now a has random food position but randomness is controlled
@@ -1002,7 +1002,7 @@ food_pos:;r5 of reg bank 2 and r6 of reg bank 2 and 20h memory location
 				mov r6,#00h							;re initialize r6
 				sjmp check_again		
 				
-				barabar: inc r6						; if r6<10 then no issue we can simply in it and then get respective value
+				barabar: inc r6						; if r6<19 then no issue we can simply in it and then get respective value
 						 mov a,r6					;mov count in a...so say if r6 was 3h so after incr it is 4h and so now a has 4 stored
 				check_again: movc a,@a+dptr			;thus from the stored values choose 4th one
 							sjmp check_overlap		;as it entered nxt_coord it meant there was overlaping somewhere so after giving new coordinates again check if still overlapping exists 
