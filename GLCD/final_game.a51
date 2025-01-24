@@ -44,7 +44,7 @@ org 002bh
 		
 		setb p2.3 ;set rest pin to 1 i.e. inactive mode
 		
-		mov sp,#40h ;move sp to ram loaction 20h
+		mov sp,#60h ;move sp to ram loaction 60h
 		
 		mov tmod,#02h
 		mov th0,#00h
@@ -459,6 +459,7 @@ org 250h;lookup tables	for char ; black=1 ;upper nibble =lower 4 bits of 8 bits 
 		C9: DB 00h,4ch,0deh,92h,92h,0feh,7ch,00h    ; 9
 			
 		start:db 11h,6eh,17h,61h,22h,5dh,28h,55h,33h,49h,16h,64h,15h,51h,25h,63h,37h,59h,44h,1eh
+		
 			
 org 700h; snake game 
 	
@@ -482,13 +483,13 @@ org 700h; snake game
 			mov r0,#30h ;store the value of ram locations that will be used to store body coordinates
 			;set the intial coordinates of snake: head->(y,x)=>0,3, body->0,1, tail->0,1
 			
-			mov r1,#13h ;set initial head coordinates
-			mov @r0,#12h ;set initial body coordinates
-			mov r2,#11h	;set initial tail coordinates 
+			mov r1,#14h ;set initial head coordinates
+			mov @r0,#13h ;set initial body coordinates
+			mov r2,#13h	;set initial tail coordinates 
 			
 			mov r3,#00h ;initially start moving towards left
 			mov r4,#02h ;length at start contains only one middle section this is required to match with the later subroutines for increasing length
-			mov r5,#34h ; set the initial food position 
+			mov r5,#35h ; set the initial food position 
 			
 			mov 19h,@r0 ;19h (r1 of reg-bank-3) for old body coord
 			mov b,r2 ;b for old tail 
@@ -497,7 +498,7 @@ org 700h; snake game
 			mov r6,a ; r6 for old head
 			mov 18h,r1 ;18h (r0 of reg-bank-3) for head
 			
-			mov 1dh,#00h ;seting the score register to zero immdiate value at start of game
+			mov 1dh,#00 ;seting the score register to zero immdiate value at start of game
 			
 			mov a,r5 ; load a with initial food coordinates
 			lcall choose_coord ;these instructions are concerned with displaying food at location present in r5
@@ -975,8 +976,13 @@ food_pos:;r5 of reg bank 2 and r6 of reg bank 2 , need to chage r6
 	mov r5,a		;mov the food coordinate into r5
 	
     check_overlap: mov 20h,r1		;due to syntax limitaion of cjne we are using 20h to store specific value (head,tail or other body element) at a time so that it can be compared with the newly generated conrolled random food coordinate which is till now stored in r5 and a
-					cjne a,20h,ch_t ;compare food coord with head coord
+					cjne a,20h,ch_ot ;compare food coord with head coord
 					sjmp nxt_coord ;if equal we have to change coord so jmp to nxt_coord
+					
+					ch_ot:mov 20h,b			;mov old tail coord in 20h
+				     cjne a,20h,ch_t	;if not equal we will compare tail and food coordinate
+					sjmp nxt_coord
+					
 					
 				ch_t:mov 20h,r2			;mov tail coord in 20h
 				     cjne a,20h,ch_b	;if not equal we will compare tail and food coordinate
@@ -1129,11 +1135,11 @@ food_pos:;r5 of reg bank 2 and r6 of reg bank 2 , need to chage r6
 			
 				mov a,1dh ;move cuurent score value in reg-a
 				
-				mov b,#10d ;move 10d in reg-b
+				mov b,#10 ;move 10d in reg-b
 				
 				div ab ;quotient is stored in a (10's place digit) & remainder is stored in b (1's Digit Number)
 				
-				clr c ;clr carry for iterating for both the digits
+				clr 00h ;clr carry for iterating for both the digits
 				
 				now_1s_place:
 				
@@ -1204,7 +1210,7 @@ food_pos:;r5 of reg bank 2 and r6 of reg bank 2 , need to chage r6
 					
 				go_to_display:
 					
-					jc almost_there ;check if carry is set or not if not then load 10's digit number on GLCD else jmp to label
+					jb 00h, almost_there ;check if carry is set or not if not then load 10's digit number on GLCD else jmp to label
 					
 					mov a,#3ah
 					lcall choose_coord
@@ -1221,7 +1227,7 @@ food_pos:;r5 of reg bank 2 and r6 of reg bank 2 , need to chage r6
 				next_digit:
 				
 				mov a,b ;put the 1's digit in a
-				setb c
+				setb 00h
 				sjmp now_1s_place ;iterate the procedure again for 1's digit number
 			
 			exit_calc_score:
