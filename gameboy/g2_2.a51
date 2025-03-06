@@ -449,12 +449,17 @@ org 400h;lookup tables for char ; black=1 ;upper nibble =lower 4 bits of 8 bits 
 org 700h; _4_in_a_row game starts here
 	
 		;reg bank 2 used for game operations
+		;r0 (10h)-> used as pointer to memory mapped loactions corresponding to GLCD Coordinates which is from 30h to 59h in RAM
+		;r1 (11h)-> used as pointers to memory loaction of which column is filled by what amount which is from 21h to 27h
 		;r2 (12h)-> col position info stored in this reg
-		;r1 (11h)-> used as pointers to memory loaction of which column is filled by what amount which is from r0 to r6 of rb-3
 		;r3 -> temporarily store the the value upto which a given selected column is filled
 		;r4 -> contains the glcd coordinates where the coin is suppose to fell once the user presses select
+		;r5 -> stores the memory mapped address value of any given GLCD coordinates
+		;r6 -> stores the memory mapped address the currently filled element
+		;r7 -> stores the count value for score related subroutines
 		;bit 00h -> column where coin is to be placed is seletcted this bit is used to indicate that
 		;bit 01h -> to determine a given players turn
+		;bit 03h -> to determine if get_memory_mapped subroutines is in use
 		
 		;also for ram location 30h to 59h the data in these memory locations are mapped to corresponding grid element coordinates of glcd 
 		;data present in them means the follwing thing
@@ -485,6 +490,8 @@ org 700h; _4_in_a_row game starts here
 		lcall coin_drop;once position is selected by given player select is pressed then first coin has to get in chosen coloumn
 	  
 		lcall update_cursor ; based on change that turn of next player display changes in screen
+		
+		lcall score_check
 		
 		sjmp main_game
 		
@@ -612,7 +619,7 @@ org 700h; _4_in_a_row game starts here
 		
 			mov a,r2; lower nibble of r2 contains the col which is selected , 
 			anl a,#0fh ; col which is selected is now in a
-			add a,r1 ; a points to the location which contains the information that how much cells are filled in chosen col
+			add a,r1 ; reg-a points to the location which contains the information that how much cells are filled in chosen col
 			; say r2=18h => a=08h then a=>29h
 			
 			clr c ;now this is done because the grid starts from 7th column till dth column for each row
@@ -643,6 +650,8 @@ org 700h; _4_in_a_row game starts here
 	update_ram: ;used to update ram memory locations correspoding to the grid filled by a given player
 	
 			mov a,r4 ;restore the currently filled cell location in reg-a
+			
+			get_mm:
 			
 			anl a,#0f0h ;mask the upper nibble to get row of the filled coin
 			swap a
@@ -695,6 +704,9 @@ org 700h; _4_in_a_row game starts here
 			subb a,#07h ;since each element of a given row starts from 7th column of glcd
 			add a,r0
 			mov r0,a
+			mov r6,a ;stores the memory mapped address the currently filled element
+			
+			jb 03h,exit_getmm
 			
 			jb 01h,updt_p2 ;to take apt decision as to what value is to be filled
 			
@@ -711,9 +723,321 @@ org 700h; _4_in_a_row game starts here
 		mov r0,#30h
 	
 	ret ;for update_ram
+	
+	get_memory_mapped:
+		
+		setb 03h ;set 03h bit high until this fuction is being executed
+		
+		sjmp get_mm
+		
+		exit_getmm:
+		
+		clr 03h ;clr the bit value once the job is over 
+		
+		mov r5,a ;store the memory mapped address value of any given GLCD coordinates 
+	
+	ret ;get memory mapped
 			
-	score_update:
-	ret;return for score_update
+	score_check:
+	
+		lcall check_vertical ;check for vertical game over possiblity with currently filled element
+		lcall check_horizontal ;check for horizontal game over possiblity with currently filled element 
+	
+	ret ;for score_check
+	
+	check_vertical: ;check the winning possiblity vertically
+	
+		mov a,r4; lower nibble of r2 contains the col which is selected , 
+		anl a,#0f0h ; col which is selected is now in a
+		swap a
+		mov r7,a ;store the number temporarily in r7
+		
+		clr c
+		subb a,#04h ;subtract from 4 because a minimum of four values are required to be filled to start vertical checking
+		
+		jc continue_vertical ; if after subtracttion carry is not set means the total rows filled are either greater than or equal to 4
+		mov a,r7 ;if the above condition is false then we are still required to check fill the newly added element belongs to 4th row or not
+		cjne a,#04h,exit_vertical_algorithm ;if reg-a is 4 then we continue to implement our algorithm else we'll exit saving processing time
+		
+		continue_vertical:
+		
+		mov a,r4 ;move the coordinates of recently filled GLCD Coordinates in reg-a
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		mov r0,a ;copy the correpsonding memory mapped value in ro
+		mov a,@r0 ;now using r0 as pointer fetch the data stored in mapped memory adderss
+		mov 1bh,a ;move the type of data corresponding to coordinates in 1bh (i.e. R3 of RB-3)
+		
+		mov a,r4 ;move the coordinates of recently filled GLCD Coordinates in reg-a
+		add a,#10h ;since for every vertical check we have to go down a element to check and to go down by 1-Row We Increase by 10h;  
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		mov r0,a
+		mov a,@r0
+		mov 1ch,a ;move the type of data corresponding to coordinates in 1ch (i.e. R4 of RB-3)
+		
+		mov a,r4 ;move the coordinates of recently filled GLCD Coordinates in reg-a
+		add a,#20h ;since for every vertical check we have to go down a element to check and to go down by 1-Row We Increase by 10h;  
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		mov r0,a
+		mov a,@r0
+		mov 1dh,a ;move the type of data corresponding to coordinates in 1ch (i.e. R5 of RB-3)
+		
+		mov a,r4 ;move the coordinates of recently filled GLCD Coordinates in reg-a
+		add a,#30h ;since for every vertical check we have to go down a element to check and to go down by 1-Row We Increase by 10h;  
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		mov r0,a
+		mov a,@r0
+		mov 1eh,a ;move the type of data corresponding to coordinates in 1ch (i.e. R5 of RB-3)
+		
+		mov a,1bh ;now copy the contents of 1bh in reg-a for comparision purposes
+		
+		cjne a,1ch,exit_vertical_algorithm ;compare reg-a with elements below it if their data type are same
+		cjne a,1dh,exit_vertical_algorithm ;coninue to check for 3-values 
+		cjne a,1eh,exit_vertical_algorithm ;else exit at first different value
+		lcall clrscreen
+		exit_vertical_algorithm:
+		
+		mov r0,#30h ;reinitialize r0 with default value for which it was to be used as pointer for other routines 
+		
+	ret ;for check_vertical
+	
+	cmp:
+	mov a,1bh ;now copy the contents of 1bh in reg-a for comparision purposes
+		
+		cjne a,1ch,exit_cmp ;compare reg-a with elements below it if their data type are same
+		cjne a,1dh,exit_cmp ;coninue to check for 3-values 
+		cjne a,1eh,exit_cmp ;else exit at first different value
+		lcall clrscreen
+		here:sjmp here
+		exit_cmp:
+	ret; cmp
+	
+	check_horizontal: ;check the winning possiblity horizontally
+		mov a,r4; lower nibble of r4 contains the col which is selected , 
+		anl a,#0fh ; col which is selected is now in acc
+		
+		;check which col is selected and accordingly take decision 
+		;c1 => check for 3 right col
+		;c2 => check for 3 left col
+		;c3 => check for 2 right cols and 1 Left
+		;c4 => check for 1 right col and 2 left
+		
+		cjne a,#07h,ch8 ;07 means 1st col is selected so only 3 right check possibility is there
+		lcall c1
+		sjmp exit_horizontal_algorithm		
+		ch8:cjne a,#08h,ch9
+		lcall c1
+		lcall c3
+		sjmp exit_horizontal_algorithm
+		ch9:cjne a,#09h,cha
+		lcall c1
+		lcall c3
+		lcall c4
+		sjmp exit_horizontal_algorithm
+		cha:cjne a,#0ah,chb
+		lcall c1
+		lcall c2
+		lcall c3
+		lcall c4
+		sjmp exit_horizontal_algorithm
+		chb:cjne a,#0bh,chc
+		lcall c2
+		lcall c3
+		lcall c4
+		sjmp exit_horizontal_algorithm
+		chc:cjne a,#0ch,chd
+		lcall c2
+		lcall c4
+		sjmp exit_horizontal_algorithm
+		chd:cjne a,#07h,ch8
+		lcall c2
+	
+		exit_horizontal_algorithm:
+		
+		
+		mov r0,#30h ;reinitialize r0 with default value for which it was to be used as pointer for other routines 
+		
+	ret ;for check_vertical
+	
+	
+	c1: ;3 Right
+		mov a,r4
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		mov r0,a ;copy the correpsonding memory mapped value in ro
+		mov a,@r0 ;now using r0 as pointer fetch the data stored in mapped memory adderss
+		mov 1bh,a ; just filled cell's content (01/02) stored in 1bh
+		
+		mov a,r4
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		add a,#01h ;mem add of nxt col of same row
+		mov r0,a ;copy the correpsonding memory mapped value in ro
+		mov a,@r0 ;now using r0 as pointer fetch the data stored in mapped memory adderss
+		mov 1ch,a ; nxt col filled cell's content (01/02/00) stored in 1ch
+		
+		mov a,r4
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		add a,#02h ; inc to two cols
+		mov r0,a ;copy the correpsonding memory mapped value in ro
+		mov a,@r0 ;now using r0 as pointer fetch the data stored in mapped memory adderss
+		mov 1dh,a ; nxt to nxt col filled cell's content (01/02/00) stored in 1dh
+		
+		mov a,r4
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		add a,#03h
+		mov r0,a ;copy the correpsonding memory mapped value in ro
+		mov a,@r0 ;now using r0 as pointer fetch the data stored in mapped memory adderss
+		mov 1eh,a ; nxt to nxt to next col filled cell's content (01/02/00) stored in 1eh
+		
+		lcall cmp
+		
+	ret; c1
+	
+	
+	c2: ;3 Left
+		mov a,r4
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		mov r0,a ;copy the correpsonding memory mapped value in ro
+		mov a,@r0 ;now using r0 as pointer fetch the data stored in mapped memory adderss
+		mov 1bh,a ;recently filled cell's content (01/02) stored in 1bh
+		
+		mov a,r4
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		clr c
+		subb a,#01h ; prev col meme mapped location in acc
+		mov r0,a ;copy the correpsonding memory mapped value in ro
+		mov a,@r0 ;now using r0 as pointer fetch the data stored in mapped memory adderss
+		mov 1ch,a; prev col filled cell's content (01/02/00) stored in 1ch
+		
+		mov a,r4
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		clr c
+		subb a,#02h
+		mov r0,a ;copy the correpsonding memory mapped value in ro
+		mov a,@r0 ;now using r0 as pointer fetch the data stored in mapped memory adderss
+		mov 1dh,a ;prev to prev col filled cell's content (01/02/00) stored in 1dh
+		
+		mov a,r4
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		clr c
+		subb a,#03h
+		mov r0,a ;copy the correpsonding memory mapped value in ro
+		mov a,@r0 ;now using r0 as pointer fetch the data stored in mapped memory adderss
+		mov 1eh,a ; prev to prev to prev col filled cell's content (01/02/00) stored in 1dh
+		
+		lcall cmp
+		
+	ret;c2
+	
+	c3: ;2Right 1Left
+		mov a,r4 ;move the coordinates of recently filled GLCD Coordinates in reg-a
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		mov r0,a ;copy the correpsonding memory mapped value in ro
+		mov a,@r0 ;now using r0 as pointer fetch the data stored in mapped memory adderss
+		mov 1bh,a ;move the type of data corresponding to coordinates in 1bh (i.e. R3 of RB-3)
+		
+		;1L
+		mov a,r4 ;move the coordinates of recently filled GLCD Coordinates in reg-a
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		clr c
+		subb a,#01h ;since for every vertical check we have to go down a element to check and to go down by 1-Row We Increase by 10h;  
+		mov r0,a
+		mov a,@r0
+		mov 1ch,a ;move the type of data corresponding to coordinates in 1ch (i.e. R4 of RB-3)
+		
+		;2R
+		mov a,r4 ;move the coordinates of recently filled GLCD Coordinates in reg-a
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		add a,#01h ;since for every vertical check we have to go down a element to check and to go down by 1-Row We Increase by 10h;  
+		mov r0,a
+		mov a,@r0
+		mov 1dh,a ;move the type of data corresponding to coordinates in 1ch (i.e. R5 of RB-3)
+		
+		mov a,r4 ;move the coordinates of recently filled GLCD Coordinates in reg-a
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		add a,#02h ;since for every vertical check we have to go down a element to check and to go down by 1-Row We Increase by 10h;  
+		mov r0,a
+		mov a,@r0
+		mov 1eh,a ;move the type of data corresponding to coordinates in 1ch (i.e. R5 of RB-3)
+		lcall cmp
+	ret;c2
+	
+	c4: ;2Left 1Right
+		mov a,r4 ;move the coordinates of recently filled GLCD Coordinates in reg-a
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		mov r0,a ;copy the correpsonding memory mapped value in ro
+		mov a,@r0 ;now using r0 as pointer fetch the data stored in mapped memory adderss
+		mov 1bh,a ;move the type of data corresponding to coordinates in 1bh (i.e. R3 of RB-3)
+		
+		;2L
+		mov a,r4 ;move the coordinates of recently filled GLCD Coordinates in reg-a
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		clr c
+		subb a,#01h ;since for every vertical check we have to go down a element to check and to go down by 1-Row We Increase by 10h;  
+		
+		mov r0,a
+		mov a,@r0
+		mov 1ch,a ;move the type of data corresponding to coordinates in 1ch (i.e. R4 of RB-3)
+		
+		mov a,r4 ;move the coordinates of recently filled GLCD Coordinates in reg-a
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		clr c
+		subb a,#02h ;since for every vertical check we have to go down a element to check and to go down by 1-Row We Increase by 10h;  
+		
+		mov r0,a
+		mov a,@r0
+		mov 1dh,a ;move the type of data corresponding to coordinates in 1ch (i.e. R5 of RB-3)
+		
+		;1R
+		mov a,r4 ;move the coordinates of recently filled GLCD Coordinates in reg-a
+		lcall get_memory_mapped
+		
+		mov a,r5 ;move the type of data corresponding to coordinates in reg-a
+		add a,#01h ;since for every vertical check we have to go down a element to check and to go down by 1-Row We Increase by 10h;  
+		
+		mov r0,a
+		mov a,@r0
+		mov 1eh,a ;move the type of data corresponding to coordinates in 1ch (i.e. R5 of RB-3)
+		lcall cmp
+	ret;c4
+	
+
 			
 	update_cursor:
 
