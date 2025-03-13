@@ -101,16 +101,16 @@ org 0010h
 		lcall cmdwrt
 		
 		lcall clrscreen
-		lcall g_yantra_intro
+		;lcall g_yantra_intro
 		
-		lcall clrscreen
-		lcall developers_intro
+		;lcall clrscreen
+		;lcall developers_intro
 		
 		setb 08h ;set bit location 08h
 	    setb 0ch
 		
 		lcall gui
-		
+		setb 09h
 		ljmp game_select
 		
 		stay: sjmp stay
@@ -1772,7 +1772,7 @@ org 079dh
 					;also the logic used to display a given binary number/stored as hex number to its equivalent BCD is shown in Book By MKP Sir Ch-9 Ex-9.1 
 					;One Can Refer that for that logic understanting
 			
-				mov a,b ;move cuurent score value in reg-a
+				mov a, 18h;move cuurent score value in reg-a
 				
 				mov b,#10 ;move 10d in reg-b
 				
@@ -1899,7 +1899,8 @@ org 079dh
 		game_over: ;this subroutine is used to display gameover string along with score display at end
 			
 				lcall clrscreen
-				mov b,1dh
+				mov a,1dh
+				mov 18h,a
 				mov a,#36h
 				lcall choose_coord
 				mov dptr ,#game
