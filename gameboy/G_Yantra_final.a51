@@ -101,10 +101,10 @@ org 0010h
 		lcall cmdwrt
 		
 		lcall clrscreen
-		;lcall g_yantra_intro
+		lcall g_yantra_intro
 		
-		;lcall clrscreen
-		;lcall developers_intro
+		lcall clrscreen
+		lcall developers_intro
 		
 		setb 08h ;set bit location 08h
 	    setb 0ch
