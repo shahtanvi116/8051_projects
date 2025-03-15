@@ -110,7 +110,6 @@ org 0010h
 	    setb 0ch
 		
 		lcall gui
-		setb 09h
 		ljmp game_select
 		
 		stay: sjmp stay
